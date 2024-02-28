@@ -11,13 +11,18 @@ import org.springframework.util.CollectionUtils;
 import org.zalando.baigan.context.ContextProviderRetriever;
 import org.zalando.baigan.model.Configuration;
 import org.zalando.baigan.context.ContextProvider;
+import org.zalando.baigan.repository.ConfigurationParser;
 import org.zalando.baigan.repository.ConfigurationRepository;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Suppliers.memoize;
@@ -57,7 +62,13 @@ public class ContextAwareConfigurationMethodInvocationHandler
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) {
         final String key = createKey(getClass(proxy), method);
-        final Object result = getConfig(key);
+
+        final List<ContextProvider> contextProviders = Arrays.stream(args)
+                .filter(ContextProvider.class::isInstance)
+                .map(ContextProvider.class::cast)
+                .collect(Collectors.toList());
+
+        final Object result = getConfig(key, contextProviders);
         if (result == null) {
             LOG.warn("No configuration found for key [{}] in configuration source, falling back to null.", key);
             return null;
@@ -76,7 +87,7 @@ public class ContextAwareConfigurationMethodInvocationHandler
         return interfaces[0];
     }
 
-    private Object getConfig(final String key) {
+    private Object getConfig(final String key, final List<ContextProvider> contextProviders) {
 
         final Optional<Configuration> optional = configurationRepository.get().get(key);
         if (!optional.isPresent()) {
@@ -93,6 +104,19 @@ public class ContextAwareConfigurationMethodInvocationHandler
             }
             final ContextProvider provider = providers.iterator().next();
             context.put(param, provider.getContextParam(param));
+        }
+
+        if (!CollectionUtils.isEmpty(contextProviders)) {
+            contextProviders.forEach(contextProvider -> {
+                contextProvider
+                        .getProvidedContexts()
+                        .forEach(contextParam -> {
+                            if(context.containsKey(contextParam)){
+                                throw new RuntimeException("Cannot have more than one context provider for the same context key "+contextParam);
+                            }
+                            context.put(contextParam, contextProvider.getContextParam(contextParam));
+                        });
+            });
         }
 
         return conditionsProcessor.get().process(optional.get(), context);

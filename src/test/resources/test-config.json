@@ -1,0 +1,34 @@
+[
+  {
+    "alias": "test.context.configuration.is.this.true",
+    "defaultValue": false,
+    "conditions": [
+      {
+        "value": true,
+        "conditionType": {
+          "onValue": "1",
+          "type": "Equals"
+        },
+        "paramName": "appdomain"
+      }
+    ]
+  },
+  {
+    "alias": "test.context.configuration.some.value",
+    "defaultValue": "some value"
+  },
+  {
+    "alias": "test.context.configuration.toggle.flag",
+    "defaultValue": false,
+    "conditions": [
+      {
+        "value": true,
+        "conditionType": {
+          "onValue": "1",
+          "type": "Equals"
+        },
+        "paramName": "appdomain"
+      }
+    ]
+  }
+]

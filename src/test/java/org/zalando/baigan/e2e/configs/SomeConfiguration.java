@@ -1,6 +1,7 @@
 package org.zalando.baigan.e2e.configs;
 
 import org.zalando.baigan.annotation.BaiganConfig;
+import org.zalando.baigan.e2e.filerepo.CustomContextProvider;
 
 import java.util.List;
 import java.util.Map;
